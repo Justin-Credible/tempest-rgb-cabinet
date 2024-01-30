@@ -1,0 +1,52 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "dotnet",
+            "label": "dotnet: build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "task": "build",
+            "problemMatcher": [],
+        },
+        {
+            "type": "process",
+            "label": "dotnet: publish",
+            "group": "build",
+            "command": "dotnet",
+            "args": [
+                "publish",
+                "-r",
+                "linux-arm64",
+                "-p:PublishSingleFile=true",
+                "--self-contained",
+                "true"
+            ],
+            "problemMatcher": [],
+        },
+        {
+            "type": "process",
+            "label": "Deploy to cabinet (local)",
+            "command": "cp",
+            "args": [
+                "bin/Release/net8.0/linux-arm64/publish/HyperionBridge",
+                "/home/dietpi/HyperionBridge"
+            ],
+            "dependsOn": "dotnet: publish",
+            "problemMatcher": [],
+        },
+        {
+            "type": "process",
+            "label": "Deploy to cabinet (remote)",
+            "command": "scp",
+            "args": [
+                "bin/Release/net8.0/linux-arm64/publish/HyperionBridge",
+                "dietpi@192.168.1.224:/home/dietpi/HyperionBridge"
+            ],
+            "dependsOn": "dotnet: publish",
+            "problemMatcher": [],
+        }
+    ]
+}
