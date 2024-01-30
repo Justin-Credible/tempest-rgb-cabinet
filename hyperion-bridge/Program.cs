@@ -7,7 +7,7 @@ class Program
 {
     const string HYPERION_IP_ADDRESS = "127.0.0.1";
     const int HYPERION_JSON_PORT = 19444;
-    const string HYPERION_ORIGIN = "tempest-hyperion-bridge-cli";
+    const string HYPERION_ORIGIN = "tempest rgb";
     const int LED_COUNT = 64;
     const int MAX_LED_INDEX = 56;
 
@@ -46,7 +46,7 @@ class Program
                 continue;
 
             // TODO: Use real level.
-            await RenderGameplay(socket, 0, position);
+            await RenderGameplay(socket, 1, position);
         }
     }
 
@@ -63,8 +63,6 @@ class Program
         var ledIndicies = GetLedIndiciesForPlayer(level, position);
 
         var sb = new StringBuilder();
-
-        var colorJson = sb.ToString();
 
         for (var i = 0; i < LED_COUNT; i++)
         {
@@ -88,13 +86,15 @@ class Program
             {
                 // Unoccupied level segment
                 // TODO: Set correct background color based on level.
-                sb.Append("192,192,0"); // Blue
+                sb.Append("0,0,128"); // Blue
             }
         }
 
+        var colorJson = sb.ToString();
+
         var json = $$"""
-            {"command": "color", "color": [{{colorJson}}], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}\r\n
-            """;
+            {"command": "color", "color": [{{colorJson}}], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
+            """ + "\r\n";
 
         var messageBytes = Encoding.ASCII.GetBytes(json);
         await socket.SendAsync(messageBytes, SocketFlags.None);
@@ -111,8 +111,8 @@ class Program
     {
         // Clear to blue; colors use G,R,B format.
         var json1 = $$"""
-            {"command": "color", "color": [0,0,255], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}\r\n"
-            """;
+            {"command": "color", "color": [0,0,255], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
+            """ + "\r\n";
         var messageBytes1 = Encoding.ASCII.GetBytes(json1);
         await socket.SendAsync(messageBytes1, SocketFlags.None);
 
@@ -150,8 +150,8 @@ class Program
 
             var colorJson = sb.ToString();
             var json2 = $$"""
-                {"command": "color", "color": [{{colorJson}}], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}\r\n
-                """;
+                {"command": "color", "color": [{{colorJson}}], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
+                """ + "\r\n";
             var messageBytes2 = Encoding.ASCII.GetBytes(json2);
             await socket.SendAsync(messageBytes2, SocketFlags.None);
 
