@@ -23,28 +23,7 @@ emu.register_frame_done(function()
     -- For testing jump to a specific level (zero indexed)
     -- mem:write_i8(0x46, 0x0F)
 
-    local nextLed0State = outputManager:get_value('led0')
-    local nextLed1State = outputManager:get_value('led1')
-
-    if led0On ~= nextLed0State then
-        led0On = nextLed0State
-        -- print('LED 0 State: ' .. led0On)
-        if led0On == 1 then
-            os.execute('xset led named \'Caps Lock\'')
-        else
-            os.execute('xset -led named \'Caps Lock\'')
-        end
-    end
-
-    if led1On ~= nextLed1State then
-        led1On = nextLed1State
-        -- print('LED 1 State: ' .. led1On)
-        if led0On == 1 then
-            os.execute('xset led named \'Scroll Lock\'')
-        else
-            os.execute('xset -led named \'Scroll Lock\'')
-        end
-    end
+    UpdateStartButtonLeds()
 
     local stateWasTheSame = prevGameState == nextGameState and prevSubGameState == nextSubGameState
 
@@ -101,3 +80,53 @@ emu.register_frame_done(function()
     end
 end)
 
+function UpdateStartButtonLeds()
+
+    -- 00 - attract
+    -- C0 - playing
+    -- 80 - high score entry
+    local playerInputMode = mem:read_u8(0x05)
+
+    -- Grab the emulated machine's reported LED states
+    local nextLed0State = outputManager:get_value('led0')
+    local nextLed1State = outputManager:get_value('led1')
+
+    -- Overridden behavior; during gameplay have the start button illuminated based
+    -- on which player is currently playing.
+    if playerInputMode == 0xC0 then
+
+        -- 00 - Player 1
+        -- 01 - Player 2
+        local currentPlayer = mem:read_i8(0x003D)
+
+        if currentPlayer == 0 then
+            nextLed0State = 1
+            nextLed1State = 0
+        end
+        
+        if currentPlayer == 1 then
+            nextLed0State = 0
+            nextLed1State = 1
+        end
+    end
+
+    if led0On ~= nextLed0State then
+        led0On = nextLed0State
+        print('LED 0 State: ' .. led0On)
+        if led0On == 1 then
+            os.execute('xset led named \'Caps Lock\'')
+        else
+            os.execute('xset -led named \'Caps Lock\'')
+        end
+    end
+
+    if led1On ~= nextLed1State then
+        led1On = nextLed1State
+        print('LED 1 State: ' .. led1On)
+        if led0On == 1 then
+            os.execute('xset led named \'Scroll Lock\'')
+        else
+            os.execute('xset -led named \'Scroll Lock\'')
+        end
+    end
+end
