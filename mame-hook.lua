@@ -7,6 +7,7 @@ local prevGameState = 0x00
 local prevSubGameState = 0x00
 local prevPlayerPosition = 0x00
 local gameState = 'unknown'
+local prevCurrentLevelIndex = 0
 local led0On = 0
 local led1On = 0
 
@@ -21,9 +22,11 @@ emu.register_frame_done(function()
     -- mem:write_i8(0x40, 0x85)
 
     -- For testing jump to a specific level (zero indexed)
-    -- mem:write_i8(0x46, 0x0F)
+    -- mem:write_i8(0x46, 0x0F) -- 0x46, player 1
+    -- mem:write_i8(0x47, 0x0F) -- 0x47, player 2
 
     UpdateStartButtonLeds()
+    UpdateCurrentLevelIndex()
 
     local stateWasTheSame = prevGameState == nextGameState and prevSubGameState == nextSubGameState
 
@@ -128,5 +131,14 @@ function UpdateStartButtonLeds()
         else
             os.execute('xset -led named \'Scroll Lock\'')
         end
+    end
+end
+
+function UpdateCurrentLevelIndex()
+    local currentLevelIndex = mem:read_i8(0x009F)
+
+    if prevCurrentLevelIndex ~= currentLevelIndex then
+        prevCurrentLevelIndex = currentLevelIndex
+        print('Current Level: ' .. currentLevelIndex + 1)
     end
 end
