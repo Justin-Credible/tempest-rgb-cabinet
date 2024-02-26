@@ -15,6 +15,11 @@ class Program
     private static int currentLevel = 1;
     private static GameState gameState = GameState.Unknown;
 
+    private static bool zapperActive = false;
+    private static int zapperFrameCounter = 0;
+    private static bool zapperUseBaseColor = true;
+    private static int zapperColorIndex = 0;
+
     public static async Task Main()
     {
         Console.WriteLine($"[hyperion-bridge] Connecting to Hyperion JSON socket '{HYPERION_IP_ADDRESS}:{HYPERION_JSON_PORT}'...");
@@ -96,7 +101,7 @@ class Program
     {
         var parts = input.Split(':');
 
-        if (parts.Length != 2)
+        if (parts.Length >= 2)
             return null;
 
         var x = new Message { Command = parts[0], Argument = parts[1] };
@@ -112,6 +117,9 @@ class Program
                 break;
             case "player-position":
                 UpdatePlayerPosition(message.Argument);
+                break;
+            case "zapper":
+                UpdateZapperState(message.Argument);
                 break;
         }
     }
@@ -129,6 +137,9 @@ class Program
             case "level-transition":
                 gameState = GameState.LevelTransition;
                 break;
+            default:
+                gameState = GameState.Unknown;
+                break;
         }
     }
 
@@ -140,36 +151,41 @@ class Program
             playerPosition = position;
     }
 
+    private static void UpdateZapperState(string zapperStateString)
+    {
+        zapperActive = zapperStateString == "active" ? true : false;
+    }
+
     private static async Task HandleRendering(Socket socket)
     {
         switch (gameState)
         {
             case GameState.GamePlay:
-                await RenderGameplay(socket, currentLevel, playerPosition);
+                await RenderGameplay(socket);
                 break;
             case GameState.TubeDecent:
-                await RenderTubeDecent(socket, currentLevel, playerPosition);
+                await RenderTubeDecent(socket);
                 break;
             case GameState.LevelTransition:
-                await RenderLevelTransition(socket, currentLevel, playerPosition);
+                await RenderLevelTransition(socket);
                 break;
         }
     }
 
-    private static async Task RenderTubeDecent(Socket socket, int level, int position)
+    private static async Task RenderTubeDecent(Socket socket)
     {
-        // TODO: Extra bright level tiles fading in and out? Use Purple for testing.
+        // TODO: Extra bright level tiles fading in and out? Use margenta for testing.
         var colors = new List<Color>();
 
         for (var i = 0; i < LED_COUNT; i++)
-            colors.Add(Color.Purple);
+            colors.Add(Color.Magenta);
 
         await Render(socket, colors);
     }
 
-    private static async Task RenderLevelTransition(Socket socket, int level, int position)
+    private static async Task RenderLevelTransition(Socket socket)
     {
-        // TODO: Mostly black with rainbow specs fading in and out? Use White for testing.
+        // TODO: Mostly black with rainbow specs fading in and out? Use white for testing.
         var colors = new List<Color>();
 
         for (var i = 0; i < LED_COUNT; i++)
@@ -178,11 +194,11 @@ class Program
         await Render(socket, colors);
     }
 
-    private static async Task RenderGameplay(Socket socket, int level, int position)
+    private static async Task RenderGameplay(Socket socket)
     {
         var colors = new List<Color>();
-        var ledIndicies = GetLedIndiciesForPlayer(level, position);
-        var colorSet = ColorMaps.Mapping[level];
+        var ledIndicies = GetLedIndiciesForPlayer(currentLevel, playerPosition);
+        var colorSet = ColorMaps.Mapping[currentLevel];
 
         for (var i = 0; i < LED_COUNT; i++)
         {
@@ -190,6 +206,32 @@ class Program
             {
                 // Player occupied level segment
                 colors.Add(colorSet.Player);
+            }
+            else if (zapperActive)
+            {
+                // Unoccupied level segment, zapper active, strobe color effect
+
+                if (zapperFrameCounter >=4)
+                {
+                    // Every 4 frames cycle between the base color set and the random color.
+                    zapperFrameCounter = 0;
+                    zapperUseBaseColor = !zapperUseBaseColor;
+
+                    // If we're not using the base color, increment to the next random color.
+                    if (!zapperUseBaseColor)
+                    {
+                        if (zapperColorIndex >= 7)
+                            zapperColorIndex = 0;
+                        else
+                            zapperColorIndex++;
+                    }
+                }
+                else
+                {
+                    zapperFrameCounter++;
+                }
+
+                colors.Add(zapperUseBaseColor ? colorSet.Level : GetZapperColor());
             }
             else
             {
@@ -199,6 +241,29 @@ class Program
         }
 
         await Render(socket, colors);
+    }
+
+    private static Color GetZapperColor()
+    {
+        switch (zapperColorIndex)
+        {
+            case 0:
+                return Color.BrightWhite;
+            case 1:
+                return Color.BrightRed;
+            case 2:
+                return Color.BrightBlue;
+            case 3:
+                return Color.BrightGreen;
+            case 4:
+                return Color.BrightYellow;
+            case 5:
+                return Color.BrightMagenta;
+            case 6:
+                return Color.BrightCyan;
+            default:
+                return Color.BrightWhite;
+        }
     }
 
     private static List<int> GetLedIndiciesForPlayer(int level, int position)

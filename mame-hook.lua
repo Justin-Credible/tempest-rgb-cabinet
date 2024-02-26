@@ -10,6 +10,7 @@ local gameState = 'unknown'
 local prevCurrentLevelIndex = 0
 local led0On = 0
 local led1On = 0
+local prevZapperActive = 0
 
 -- Run with: mame.exe tempest -autoboot_script mame-hook.lua
 emu.register_frame_done(function()
@@ -24,6 +25,9 @@ emu.register_frame_done(function()
     -- For testing jump to a specific level (zero indexed)
     -- mem:write_i8(0x46, 0x0F) -- 0x46, player 1
     -- mem:write_i8(0x47, 0x0F) -- 0x47, player 2
+
+    -- For testing: infinite zapper effect
+    -- mem:write_i8(0x03AA, 0)
 
     UpdateStartButtonLeds()
     UpdateCurrentLevelIndex()
@@ -64,7 +68,7 @@ emu.register_frame_done(function()
             print('game-state:game-play')
         else
             gameState = 'unknown'
-            print('game-state:unknown')
+            print('game-state:unknown:' .. nextGameState .. ':' .. nextSubGameState)
         end
 
         prevGameState = nextGameState
@@ -80,6 +84,21 @@ emu.register_frame_done(function()
             prevPlayerPosition = nextPlayerPosition
             print('player-position:' .. nextPlayerPosition)
         end
+    end
+
+    -- 0 - Zapper not active
+    -- 1-4 - Zapper active
+    local zapperCounter = mem:read_i8(0x0125)
+    local nextZapperActive = zapperCounter > 0 and 1 or 0 -- zapperCounter > 0 ? 1 : 0
+
+    if nextZapperActive ~= prevZapperActive then
+        if nextZapperActive == 0 then
+            print('zapper:inactive')
+        else
+            print('zapper:active')
+        end
+
+        prevZapperActive = nextZapperActive
     end
 end)
 
@@ -106,7 +125,7 @@ function UpdateStartButtonLeds()
             nextLed0State = 1
             nextLed1State = 0
         end
-        
+
         if currentPlayer == 1 then
             nextLed0State = 0
             nextLed1State = 1
