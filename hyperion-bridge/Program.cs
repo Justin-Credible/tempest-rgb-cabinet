@@ -37,48 +37,88 @@ class Program
             if (input == null)
                 return;
 
-            PerformUpdates(input);
+            var message = ParseMessage(input);
 
-            switch (gameState)
+            if (message == null)
+                continue;
+
+            HandleUpdates(message.Value);
+            await HandleRendering(socket);
+        }
+    }
+
+    private static async Task<Socket> Connect(string ipAddress, int port)
+    {
+        var ipEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
+        var client = new Socket(ipEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        await client.ConnectAsync(ipEndPoint);
+        return client;
+    }
+
+    public static async Task RunChaserDemo(Socket socket)
+    {
+        var colorSet = ColorMaps.Mapping[1];
+
+        var location = 0;
+        var incrementBy = 1;
+        var range = 3;
+
+        while (true)
+        {
+            var colors = new List<Color>();
+
+            for (var i = 0; i < LED_COUNT; i++)
             {
-                case GameState.GamePlay:
-                    await RenderGameplay(socket, currentLevel, playerPosition);
-                    break;
-                case GameState.TubeDecent:
-                    await RenderTubeDecent(socket, currentLevel, playerPosition);
-                    break;
-                case GameState.LevelTransition:
-                    await RenderLevelTransition(socket, currentLevel, playerPosition);
-                    break;
+                if (location >= i - range && location <= i + range)
+                {
+                    // Player occupied level segment
+                    colors.Add(colorSet.Player);
+                }
+                else
+                {
+                    // Unoccupied level segment
+                    colors.Add(colorSet.Level);
+                }
             }
+
+            await Render(socket, colors);
+
+            location += incrementBy;
+
+            if (location >= 56 || location <= 0)
+                incrementBy = incrementBy * -1;
+
+            Thread.Sleep(100);
         }
     }
 
-    private static void PerformUpdates(string input)
+    private static Message? ParseMessage(string input)
     {
-        var isGameState = input.StartsWith("Game State: ");
-
-        if (isGameState)
-        {
-            UpdateGameState(input);
-        }
-
-        var isPlayerPosition = input.StartsWith("Player Position: ");
-
-        if (isPlayerPosition)
-        {
-            UpdatePlayerPosition(input);
-        }
-    }
-
-    private static void UpdateGameState(string message)
-    {
-        var parts = message.Split("Game State: ");
+        var parts = input.Split(':');
 
         if (parts.Length != 2)
-            return;
+            return null;
 
-        switch (parts[1])
+        var x = new Message { Command = parts[0], Argument = parts[1] };
+        return x;
+    }
+
+    private static void HandleUpdates(Message message)
+    {
+        switch(message.Command)
+        {
+            case "game-state":
+                UpdateGameState(message.Argument);
+                break;
+            case "player-position":
+                UpdatePlayerPosition(message.Argument);
+                break;
+        }
+    }
+
+    private static void UpdateGameState(string stateName)
+    {
+        switch (stateName)
         {
             case "game-play":
                 gameState = GameState.GamePlay;
@@ -92,25 +132,28 @@ class Program
         }
     }
 
-    private static void UpdatePlayerPosition(string message)
+    private static void UpdatePlayerPosition(string positionString)
     {
-        var parts = message.Split("Player Position: ");
-
-        if (parts.Length != 2)
-            return;
-
-        var parsedOk = int.TryParse(parts[1], out int position);
+        var parsedOk = int.TryParse(positionString, out int position);
 
         if (parsedOk)
             playerPosition = position;
     }
 
-    private static async Task<Socket> Connect(string ipAddress, int port)
+    private static async Task HandleRendering(Socket socket)
     {
-        var ipEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
-        var client = new Socket(ipEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-        await client.ConnectAsync(ipEndPoint);
-        return client;
+        switch (gameState)
+        {
+            case GameState.GamePlay:
+                await RenderGameplay(socket, currentLevel, playerPosition);
+                break;
+            case GameState.TubeDecent:
+                await RenderTubeDecent(socket, currentLevel, playerPosition);
+                break;
+            case GameState.LevelTransition:
+                await RenderLevelTransition(socket, currentLevel, playerPosition);
+                break;
+        }
     }
 
     private static async Task RenderTubeDecent(Socket socket, int level, int position)
@@ -194,62 +237,5 @@ class Program
 
         var messageBytes = Encoding.ASCII.GetBytes(json);
         await socket.SendAsync(messageBytes, SocketFlags.None);
-    }
-
-    public static async Task RunChaserDemo(Socket socket)
-    {
-        // Clear to blue; colors use G,R,B format.
-        var json1 = $$"""
-            {"command": "color", "color": [0,0,255], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
-            """ + "\r\n";
-        var messageBytes1 = Encoding.ASCII.GetBytes(json1);
-        await socket.SendAsync(messageBytes1, SocketFlags.None);
-
-        var location = 0;
-        var incrementBy = 1;
-        var range = 3;
-
-        while (true)
-        {
-            var sb = new StringBuilder();
-
-            for (int i = 0; i < 64; i++)
-            {
-                if (i != 0)
-                {
-                    sb.Append(",");
-                }
-
-                if (i >= 56)
-                {
-                    // Unused LEDs.
-                    sb.Append("0,0,0");
-                }
-                else if (location >= i - range && location <= i + range)
-                {
-                    // Yellow chaser dots
-                    sb.Append("192,192,0");
-                }
-                else
-                {
-                    // Blue background
-                    sb.Append("0,0,128");
-                }
-            }
-
-            var colorJson = sb.ToString();
-            var json2 = $$"""
-                {"command": "color", "color": [{{colorJson}}], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
-                """ + "\r\n";
-            var messageBytes2 = Encoding.ASCII.GetBytes(json2);
-            await socket.SendAsync(messageBytes2, SocketFlags.None);
-
-            location += incrementBy;
-
-            if (location >= 56 || location <= 0)
-                incrementBy = incrementBy * -1;
-
-            Thread.Sleep(25);
-        }
     }
 }

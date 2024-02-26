@@ -34,37 +34,37 @@ emu.register_frame_done(function()
     if not stateWasTheSame then
         if nextGameState == 0x0A and nextSubGameState == 0x0A then
             gameState = 'high-scores'
-            print('Game State: high-scores')
+            print('game-state:high-scores')
         elseif nextGameState == 0x0A and nextSubGameState == 0x12 then
             gameState = 'title-screen-fade-in'
-            print('Game State: title-screen-fade-in')
+            print('game-state:title-screen-fade-in')
         elseif nextGameState == 0x0A and nextSubGameState == 0x14 then
-            print('Game State: title-screen')
+            print('game-state:title-screen')
         elseif nextGameState == 0x18 then
             gameState = 'level-transition'
-            print('Game State: level-transition')
+            print('game-state:level-transition')
         elseif nextGameState == 0x20 then
             gameState = 'tube-decent'
-            print('Game State: tube-decent')
+            print('game-state:tube-decent')
         -- Set briefly on player death... but set after death animation occurs
         -- elseif nextGameState == 0x06 then
         --     gameState = 'player-death'
-        --     print('Game State: player-death')
+        --     print('game-state:player-death')
         elseif nextGameState == 0x24 then
             gameState = 'high-score-explosion'
-            print('Game State: high-score-explosion')
+            print('game-state:high-score-explosion')
         elseif nextGameState == 0x12 then
             gameState = 'enter-initials'
-            print('Game State: enter-initials')
+            print('game-state:enter-initials')
         elseif nextGameState == 0x16 then
             gameState = 'level-selection'
-            print('Game State: level-selection')
+            print('game-state:level-selection')
         elseif nextSubGameState == 0x00 then
             gameState = 'game-play'
-            print('Game State: game-play')
+            print('game-state:game-play')
         else
             gameState = 'unknown'
-            print('Game State: unknown')
+            print('game-state:unknown')
         end
 
         prevGameState = nextGameState
@@ -78,7 +78,7 @@ emu.register_frame_done(function()
 
         if not positionWasTheSame then
             prevPlayerPosition = nextPlayerPosition
-            print('Player Position: ' .. nextPlayerPosition)
+            print('player-position:' .. nextPlayerPosition)
         end
     end
 end)
@@ -115,7 +115,7 @@ function UpdateStartButtonLeds()
 
     if led0On ~= nextLed0State then
         led0On = nextLed0State
-        print('LED 0 State: ' .. led0On)
+        print('led-state:0:' .. led0On)
         if led0On == 1 then
             os.execute('xset led named \'Caps Lock\'')
         else
@@ -125,7 +125,7 @@ function UpdateStartButtonLeds()
 
     if led1On ~= nextLed1State then
         led1On = nextLed1State
-        print('LED 1 State: ' .. led1On)
+        print('led-state:1:' .. led1On)
         if led0On == 1 then
             os.execute('xset led named \'Scroll Lock\'')
         else
