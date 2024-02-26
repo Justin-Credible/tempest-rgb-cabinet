@@ -19,9 +19,17 @@ local prevDeathState = 0
 
 -- Run with: mame.exe tempest -autoboot_script mame-hook.lua
 emu.register_frame_done(function()
-    local nextGameState = mem:read_i8(0x00)
-    local nextSubGameState = mem:read_i8(0x01)
+    ApplyCheats()
 
+    UpdateGameState()
+    UpdatePlayerPosition()
+    UpdateStartButtonLeds()
+    UpdateCurrentLevelIndex()
+    UpdateDeathState()
+    UpdateZapperState()
+end)
+
+function ApplyCheats()
     -- For testing high score explosion and initials entry
     -- mem:write_i8(0x42, 0x08)
     -- mem:write_i8(0x41, 0x00)
@@ -33,10 +41,11 @@ emu.register_frame_done(function()
 
     -- For testing: infinite zapper effect
     -- mem:write_i8(0x03AA, 0)
+end
 
-    UpdateStartButtonLeds()
-    UpdateCurrentLevelIndex()
-    UpdateDeathState()
+function UpdateGameState()
+    local nextGameState = mem:read_i8(0x00)
+    local nextSubGameState = mem:read_i8(0x01)
 
     local stateWasTheSame = prevGameState == nextGameState and prevSubGameState == nextSubGameState
 
@@ -79,7 +88,9 @@ emu.register_frame_done(function()
         prevGameState = nextGameState
         prevSubGameState = nextSubGameState
     end
+end
 
+function UpdatePlayerPosition()
     if gameState == 'game-play' or gameState == 'tube-decent' or gameState == 'level-transition' then
         local nextPlayerPosition = mem:read_i8(0x200)
 
@@ -90,22 +101,7 @@ emu.register_frame_done(function()
             print('player-position:' .. nextPlayerPosition)
         end
     end
-
-    -- 0 - Zapper not active
-    -- 1-4 - Zapper active
-    local zapperCounter = mem:read_i8(0x0125)
-    local nextZapperActive = zapperCounter > 0 and 1 or 0 -- zapperCounter > 0 ? 1 : 0
-
-    if nextZapperActive ~= prevZapperActive then
-        if nextZapperActive == 0 then
-            print('zapper:inactive')
-        else
-            print('zapper:active')
-        end
-
-        prevZapperActive = nextZapperActive
-    end
-end)
+end
 
 function UpdateStartButtonLeds()
 
@@ -185,5 +181,22 @@ function UpdateDeathState()
     if prevDeathState ~= nextDeathState then
         prevDeathState = nextDeathState
         print('death-state:' .. nextDeathState)
+    end
+end
+
+function UpdateZapperState()
+    -- 0 - Zapper not active
+    -- 1-4 - Zapper active
+    local zapperCounter = mem:read_i8(0x0125)
+    local nextZapperActive = zapperCounter > 0 and 1 or 0 -- zapperCounter > 0 ? 1 : 0
+
+    if nextZapperActive ~= prevZapperActive then
+        if nextZapperActive == 0 then
+            print('zapper:inactive')
+        else
+            print('zapper:active')
+        end
+
+        prevZapperActive = nextZapperActive
     end
 end
