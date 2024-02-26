@@ -12,6 +12,11 @@ local led0On = 0
 local led1On = 0
 local prevZapperActive = 0
 
+-- 0 - Not in death state
+-- 1 - In ship captured death state
+-- 2 - In ship explosion death state
+local prevDeathState = 0
+
 -- Run with: mame.exe tempest -autoboot_script mame-hook.lua
 emu.register_frame_done(function()
     local nextGameState = mem:read_i8(0x00)
@@ -31,10 +36,10 @@ emu.register_frame_done(function()
 
     UpdateStartButtonLeds()
     UpdateCurrentLevelIndex()
+    UpdateDeathState()
 
     local stateWasTheSame = prevGameState == nextGameState and prevSubGameState == nextSubGameState
 
-    -- TODO: Detect player death, zapper
     if not stateWasTheSame then
         if nextGameState == 0x0A and nextSubGameState == 0x0A then
             gameState = 'high-scores'
@@ -158,6 +163,27 @@ function UpdateCurrentLevelIndex()
 
     if prevCurrentLevelIndex ~= currentLevelIndex then
         prevCurrentLevelIndex = currentLevelIndex
-        print('Current Level: ' .. currentLevelIndex + 1)
+        print('current-level:' .. currentLevelIndex + 1)
+    end
+end
+
+function UpdateDeathState()
+    local deathState = mem:read_i8(0x201);
+    local shipCaptureInProgress = (deathState & 0x80) == 0x80
+    local shipExplosionInProgress = (deathState & 0x81) == 0x81
+
+    local nextDeathState = 0
+
+    if shipCaptureInProgress then
+        nextDeathState = 1
+    end
+
+    if shipExplosionInProgress then
+        nextDeathState = 2
+    end
+
+    if prevDeathState ~= nextDeathState then
+        prevDeathState = nextDeathState
+        print('death-state:' .. nextDeathState)
     end
 end

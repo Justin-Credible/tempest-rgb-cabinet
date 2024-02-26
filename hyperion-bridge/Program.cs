@@ -20,6 +20,11 @@ class Program
     private static bool zapperUseBaseColor = true;
     private static int zapperColorIndex = 0;
 
+    private static int explosionFrameCounter = 0;
+    private static int explosionColorIndex = 0;
+
+    private static DeathState deathState = DeathState.None;
+
     public static async Task Main()
     {
         Console.WriteLine($"[hyperion-bridge] Connecting to Hyperion JSON socket '{HYPERION_IP_ADDRESS}:{HYPERION_JSON_PORT}'...");
@@ -115,11 +120,17 @@ class Program
             case "game-state":
                 UpdateGameState(message.Argument);
                 break;
+            case "current-level":
+                UpdateCurrentLevel(message.Argument);
+                break;
             case "player-position":
                 UpdatePlayerPosition(message.Argument);
                 break;
             case "zapper":
                 UpdateZapperState(message.Argument);
+                break;
+            case "death-state":
+                UpdateDeathState(message.Argument);
                 break;
         }
     }
@@ -143,6 +154,14 @@ class Program
         }
     }
 
+    private static void UpdateCurrentLevel(string levelString)
+    {
+        var parsedOk = int.TryParse(levelString, out int position);
+
+        if (parsedOk)
+            currentLevel = position;
+    }
+
     private static void UpdatePlayerPosition(string positionString)
     {
         var parsedOk = int.TryParse(positionString, out int position);
@@ -154,6 +173,22 @@ class Program
     private static void UpdateZapperState(string zapperStateString)
     {
         zapperActive = zapperStateString == "active" ? true : false;
+    }
+
+    private static void UpdateDeathState(string deathStateString)
+    {
+        switch (deathStateString)
+        {
+            case "0":
+                deathState = DeathState.None;
+                break;
+            case "1":
+                deathState = DeathState.ShipCapture;
+                break;
+            case "2":
+                deathState = DeathState.ShipExplosion;
+                break;
+        }
     }
 
     private static async Task HandleRendering(Socket socket)
@@ -197,41 +232,74 @@ class Program
     private static async Task RenderGameplay(Socket socket)
     {
         var colors = new List<Color>();
-        var ledIndicies = GetLedIndiciesForPlayer(currentLevel, playerPosition);
+        var ledIndicies = Utilities.GetLedIndiciesForPlayer(currentLevel, playerPosition);
         var colorSet = ColorMaps.Mapping[currentLevel];
 
+        // Frame counter bookkeeping for animations etc.
+        if (deathState == DeathState.ShipCapture)
+        {
+            // TODO: Framecounter bookeeping
+        }
+        else if (deathState == DeathState.ShipExplosion)
+        {
+            if (explosionFrameCounter >= 4)
+            {
+                explosionFrameCounter = 0;
+                explosionColorIndex++;
+
+                if (explosionColorIndex >= 3)
+                    explosionColorIndex = 0;
+            }
+            else
+            {
+                explosionFrameCounter++;
+            }
+        }
+        else if (zapperActive)
+        {
+            if (zapperFrameCounter >=4)
+            {
+                // Every 4 frames cycle between the base color set and the random color.
+                zapperFrameCounter = 0;
+                zapperUseBaseColor = !zapperUseBaseColor;
+
+                // If we're not using the base color, increment to the next random color.
+                if (!zapperUseBaseColor)
+                {
+                    if (zapperColorIndex >= 7)
+                        zapperColorIndex = 0;
+                    else
+                        zapperColorIndex++;
+                }
+            }
+            else
+            {
+                zapperFrameCounter++;
+            }
+        }
+
+        // Specify the color of each RGB LED in the strip.
         for (var i = 0; i < LED_COUNT; i++)
         {
-            if (ledIndicies.Contains(i))
+            if (deathState == DeathState.ShipCapture)
             {
-                // Player occupied level segment
-                colors.Add(colorSet.Player);
+                // TODO: Ramp up to full level color brightness, then fade to black
+                colors.Add(Color.BrightMagenta);
+            }
+            else if (deathState == DeathState.ShipExplosion)
+            {
+                // Ship explosion, strobe explosion colors
+                colors.Add(Utilities.GetExplosionColor(explosionColorIndex));
             }
             else if (zapperActive)
             {
-                // Unoccupied level segment, zapper active, strobe color effect
-
-                if (zapperFrameCounter >=4)
-                {
-                    // Every 4 frames cycle between the base color set and the random color.
-                    zapperFrameCounter = 0;
-                    zapperUseBaseColor = !zapperUseBaseColor;
-
-                    // If we're not using the base color, increment to the next random color.
-                    if (!zapperUseBaseColor)
-                    {
-                        if (zapperColorIndex >= 7)
-                            zapperColorIndex = 0;
-                        else
-                            zapperColorIndex++;
-                    }
-                }
-                else
-                {
-                    zapperFrameCounter++;
-                }
-
-                colors.Add(zapperUseBaseColor ? colorSet.Level : GetZapperColor());
+                // Zapper active, strobe color effect
+                colors.Add(zapperUseBaseColor ? colorSet.Level : Utilities.GetZapperColor(zapperColorIndex));
+            }
+            else if (ledIndicies.Contains(i))
+            {
+                // Player occupied level segment
+                colors.Add(colorSet.Player);
             }
             else
             {
@@ -241,36 +309,6 @@ class Program
         }
 
         await Render(socket, colors);
-    }
-
-    private static Color GetZapperColor()
-    {
-        switch (zapperColorIndex)
-        {
-            case 0:
-                return Color.BrightWhite;
-            case 1:
-                return Color.BrightRed;
-            case 2:
-                return Color.BrightBlue;
-            case 3:
-                return Color.BrightGreen;
-            case 4:
-                return Color.BrightYellow;
-            case 5:
-                return Color.BrightMagenta;
-            case 6:
-                return Color.BrightCyan;
-            default:
-                return Color.BrightWhite;
-        }
-    }
-
-    private static List<int> GetLedIndiciesForPlayer(int level, int position)
-    {
-        var levelMap = LevelMaps.Mapping[level];
-        var positionMap = levelMap[position];
-        return positionMap;
     }
 
     private static async Task Render(Socket socket, List<Color> colors)
