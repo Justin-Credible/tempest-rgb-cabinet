@@ -34,44 +34,44 @@ emu.register_frame_done(function()
     if not stateWasTheSame then
         if nextGameState == 0x0A and nextSubGameState == 0x0A then
             gameState = 'high-scores'
-            print('Game State: High Scores')
+            print('Game State: high-scores')
         elseif nextGameState == 0x0A and nextSubGameState == 0x12 then
-            gameState = 'title-screen'
-            print('Game State: Tempest Logo (Color Box)')
+            gameState = 'title-screen-fade-in'
+            print('Game State: title-screen-fade-in')
         elseif nextGameState == 0x0A and nextSubGameState == 0x14 then
-            print('Game State: Tempest Logo')
+            print('Game State: title-screen')
         elseif nextGameState == 0x18 then
             gameState = 'level-transition'
-            print('Game State: Transition to next level')
+            print('Game State: level-transition')
         elseif nextGameState == 0x20 then
             gameState = 'tube-decent'
-            print('Game State: Tube decent')
+            print('Game State: tube-decent')
         -- Set briefly on player death... but set after death animation occurs
         -- elseif nextGameState == 0x06 then
         --     gameState = 'player-death'
-        --     print('Game State: Player death')
+        --     print('Game State: player-death')
         elseif nextGameState == 0x24 then
             gameState = 'high-score-explosion'
-            print('Game State: High score explosion')
+            print('Game State: high-score-explosion')
         elseif nextGameState == 0x12 then
             gameState = 'enter-initials'
-            print('Game State: Enter initials for high score')
+            print('Game State: enter-initials')
         elseif nextGameState == 0x16 then
             gameState = 'level-selection'
-            print('Game State: Level selection')
+            print('Game State: level-selection')
         elseif nextSubGameState == 0x00 then
             gameState = 'game-play'
-            print('Game State: game play')
+            print('Game State: game-play')
         else
             gameState = 'unknown'
-            print('Game State: (unknown transition)')
+            print('Game State: unknown')
         end
 
         prevGameState = nextGameState
         prevSubGameState = nextSubGameState
     end
 
-    if gameState == 'game-play' then
+    if gameState == 'game-play' or gameState == 'tube-decent' or gameState == 'level-transition' then
         local nextPlayerPosition = mem:read_i8(0x200)
 
         local positionWasTheSame = prevPlayerPosition == nextPlayerPosition
