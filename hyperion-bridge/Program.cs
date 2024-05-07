@@ -106,11 +106,10 @@ class Program
     {
         var parts = input.Split(':');
 
-        if (parts.Length >= 2)
+        if (parts.Length != 2)
             return null;
 
-        var x = new Message { Command = parts[0], Argument = parts[1] };
-        return x;
+        return new Message { Command = parts[0], Argument = parts[1] };
     }
 
     private static void HandleUpdates(Message message)
