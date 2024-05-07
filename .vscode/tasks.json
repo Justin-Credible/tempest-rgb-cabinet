@@ -31,7 +31,7 @@
             "label": "Deploy to cabinet (local)",
             "command": "cp",
             "args": [
-                "bin/Release/net8.0/linux-arm64/publish/HyperionBridge",
+                "${workspaceFolder}/hyperion-bridge/bin/Release/net8.0/linux-arm64/publish/HyperionBridge",
                 "/home/dietpi/HyperionBridge"
             ],
             "dependsOn": "dotnet: publish",
@@ -42,8 +42,8 @@
             "label": "Deploy to cabinet (remote)",
             "command": "scp",
             "args": [
-                "bin/Release/net8.0/linux-arm64/publish/HyperionBridge",
-                "dietpi@192.168.1.224:/home/dietpi/HyperionBridge"
+                "${workspaceFolder}/hyperion-bridge/bin/Release/net8.0/linux-arm64/publish/HyperionBridge",
+                "dietpi@192.168.4.160:/home/dietpi/hyperion-bridge"
             ],
             "dependsOn": "dotnet: publish",
             "problemMatcher": [],
