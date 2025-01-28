@@ -69,11 +69,11 @@ function UpdateGameState()
         --     gameState = 'player-death'
         --     print('game-state:player-death')
         elseif nextGameState == 0x24 then
-            gameState = 'high-score-explosion'
-            print('game-state:high-score-explosion')
+            gameState = 'high-score-achievement'
+            print('game-state:high-score-achievement')
         elseif nextGameState == 0x12 then
-            gameState = 'enter-initials'
-            print('game-state:enter-initials')
+            gameState = 'high-score-entry'
+            print('game-state:high-score-entry')
         elseif nextGameState == 0x16 then
             gameState = 'level-selection'
             print('game-state:level-selection')
@@ -180,7 +180,13 @@ function UpdateDeathState()
 
     if prevDeathState ~= nextDeathState then
         prevDeathState = nextDeathState
-        print('death-state:' .. nextDeathState)
+        if nextDeathState == 0 then
+            print('death-state:inactive')
+        elseif nextDeathState == 1 then
+            print('death-state:ship-capture')
+        elseif nextDeathState == 2 then
+            print('death-state:ship-explosion')
+        end
     end
 end
 
