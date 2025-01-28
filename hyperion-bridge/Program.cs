@@ -27,6 +27,7 @@ class Program
 
         var renderer = new TempestRenderer(LED_COUNT, MAX_LED_INDEX);
         renderer.OnEmitColors += async (colors) => await Render(socket, colors);
+        renderer.OnEmitEffect += async (effectName) => await SetEffect(socket, effectName);
 
         while (true)
         {
@@ -100,6 +101,20 @@ class Program
 
         var json = $$"""
             {"command": "color", "color": [{{colorJson}}], "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
+            """ + "\r\n";
+
+        var messageBytes = Encoding.ASCII.GetBytes(json);
+        await socket.SendAsync(messageBytes, SocketFlags.None);
+    }
+
+    private static async Task SetEffect(Socket socket, string effectName)
+    {
+        // Examples:
+        // { "command": "effect", "effect": { "name": "Rainbow swirl fast" }, "priority": 50, "origin": "netcattest" }
+        // { "command": "effect", "effect": { "name": "Strobe red" }, "duration": 1000, "priority": 50, "origin": "netcattest" }
+
+        var json = $$"""
+            {"command": "effect", "effect": { "name": "{{effectName}}" }, "priority": 50, "origin": "{{HYPERION_ORIGIN}}"}
             """ + "\r\n";
 
         var messageBytes = Encoding.ASCII.GetBytes(json);

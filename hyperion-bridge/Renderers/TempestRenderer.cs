@@ -16,6 +16,9 @@ class TempestRenderer
     public delegate void EmitColorsEvent(List<Color> colors);
     public event EmitColorsEvent? OnEmitColors;
 
+    public delegate void EmitEffectEvent(string effectName);
+    public event EmitEffectEvent? OnEmitEffect;
+
     public TempestRenderer(int ledCount, int maxLedIndex)
     {
         _ledCount = ledCount;
@@ -107,7 +110,7 @@ class TempestRenderer
             case "title-screen":
                 _gameState = GameState.TitleScreen;
                 _animationManager.StopAnimation();
-                // TODO: Emit Hyperion pre-set/command: rainbow fade!
+                OnEmitEffect?.Invoke("Rainbow swirl fast");
                 break;
             case "tube-decent":
                 _gameState = GameState.TubeDecent;
@@ -129,7 +132,7 @@ class TempestRenderer
             case "level-selection":
                 _gameState = GameState.LevelTransition;
                 _animationManager.StopAnimation();
-                // TODO: Emit Hyperion pre-set/command: pulsing?
+                OnEmitEffect?.Invoke("Strobe red"); // TODO: Another color? Send duration?
                 break;
             default:
                 _gameState = GameState.Unknown;
